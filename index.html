@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MQTT Temperature Subscriber</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        #temperatureDisplay {
+            font-size: 24px;
+            margin: 20px 0;
+            padding: 10px;
+            border: 2px solid #333;
+            border-radius: 8px;
+            display: inline-block;  /* Pour s'ajuster au contenu */
+        }
+
+        #temperatureMessage {
+            font-size: 18px;
+            color: red;
+            margin: 10px 0;
+        }
+        img {
+            width: 90px;  
+            height: 90px;  
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1><img src="./temp2.png" alt="Logo" /> Mesure de la température d'une pièce</h1>
+    <div id="temperatureDisplay">En attente des données de température...</div>
+    <div id="temperatureMessage"></div>
+
+    <script>
+        // Configuration du broker MQTT HiveMQ
+        var broker = "broker.hivemq.com";
+        var port = 8000;  // Port Websocket
+        var topic = "Temp";
+
+        // Créer un client MQTT
+        var client = new Paho.MQTT.Client(broker, port, "web_" + parseInt(Math.random() * 100, 10));
+
+        // Callback appelé lorsqu'une connexion est établie avec le broker
+        client.onConnectionLost = function(responseObject) {
+            if (responseObject.errorCode !== 0) {
+                console.log("Connection lost: " + responseObject.errorMessage);
+            }
+        };
+
+        // Callback appelé lorsqu'un message est reçu
+        client.onMessageArrived = function(message) {
+            // Récupérer la valeur de la température
+            var temperatureValue = parseFloat(message.payloadString);
+
+            // Mettre à jour l'affichage avec la nouvelle température reçue
+            document.getElementById('temperatureDisplay').innerHTML = 'Température: ' + temperatureValue + ' °C';
+
+            // Afficher des messages en fonction des conditions
+            var messageElement = document.getElementById('temperatureMessage');
+            if (temperatureValue > 37) {
+                messageElement.innerHTML = 'Attention! La température est très élevée.';
+                console.log('Attention! La température est très élevée.');
+            } else if (temperatureValue < 23) {
+                messageElement.innerHTML = 'Attention! La température est très basse.';
+                console.log('Attention! La température est très basse.');
+            } else {
+                messageElement.innerHTML = '';  // Effacer le message si la température est normale
+            }
+        };
+
+        // Se connecter au broker MQTT
+        client.connect({
+            useSSL: false,
+            onSuccess: function () {
+                console.log("Connected to " + broker + ":" + port);
+                // Souscrire au topic lorsqu'on est connecté
+                client.subscribe(topic);
+            }
+        });
+    </script>
+</body>
+</html>
